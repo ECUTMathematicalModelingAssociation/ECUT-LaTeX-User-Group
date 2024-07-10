@@ -1,0 +1,92 @@
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {longtitle}
+%这里实现一个不定长的自动换行的论文标题，来源于https://syvshc.github.io/2021-08-04-thesis-title/
+\RequirePackage{calc}
+
+%\makeatletter
+\renewcommand{\arraystretch}{1.2}
+
+% inner temp length
+\newlength\@tempTitleHt
+\newlength\@tempTitleMaxWd
+
+% length used as parameters， "Wd" is a shorthand for "Width"
+\newlength\titleSingleLineMaxWd
+\newlength\titleMultiLineMaxWd
+\newlength\titleLRExtraWd
+\newlength\titleSepWd
+
+\setlength\titleSingleLineMaxWd{0.8\textwidth}
+\setlength\titleMultiLineMaxWd{0.8\textwidth}
+\setlength\titleLRExtraWd{.5em}
+\setlength\titleSepWd{.5em}
+
+% main macro, using a simple table
+\newcommand{\multilingualTitles}[2]{%
+  \par
+  {\noindent\centering
+  \begin{tabular}{r @{\hspace{\titleSepWd}} p{\titleSingleLineMaxWd}}
+  \bfseries 题 \kern 2em 目  & \titleBox{#1} \\
+  \bfseries	英文题目 & \titleBox{#2}
+  \end{tabular}\par}%
+}
+
+% draw a fixed-width underline
+\newcommand{\titleUnderline}{%
+  \rule[-.3em]{\titleSingleLineMaxWd + 2\titleLRExtraWd}{.5pt}}
+
+% title content typesetter
+\newcommand\titleBox[1]{%
+  \setlength\@tempTitleMaxWd\titleSingleLineMaxWd
+  % Measure the total height of #1 subject to \titleSingleLineMaxWd.
+  % Here \@titleBox is necessary when #1 contains "\\".
+  \settototalheight\@tempTitleHt{\@titleBox{#1}}%
+  \ifdim\@tempTitleHt=0pt%
+    % case 1: #1 causes empty output
+    \titleUnderline
+  \else
+    % Change to LR mode, for inserting a zero-width box right after.
+    \leavevmode
+    % note: Use \normalbaseineskip instead of \baselineskip,
+    %       since the latter is set to 0pt inside tabular env.
+    \ifdim\@tempTitleHt>\normalbaselineskip
+      % case 2: #1 is fit for multilines, or contains `\\`, hence
+      %         \titleMultiLineMaxWd is used instead, and the total
+      %         height of #1 subject to new max width is re-measured.
+      \setlength\@tempTitleMaxWd\titleMultiLineMaxWd
+      \settototalheight\@tempTitleHt{\@titleBox{#1}}%
+      % \rlap{\smash{...}} typesets content of its argument normally
+      % but sets it into a zero sized box. Here \@titleBox set
+      % (possiblly) multi-line text into a single box, since \smash
+      % only takes in argument spreading one line.
+      %
+      % Every line of title content needs an underline, hense we do
+      % a loop to typeset one underline for every line the title
+      % content actually spreads.
+      \rlap{\smash{\@titleBox{%
+        \@whiledim\@tempTitleHt>0pt%
+        \leavevmode
+        %
+        \do{%
+          \rlap{\titleUnderline}\\%
+          \addtolength\@tempTitleHt{-\normalbaselineskip}%
+        }%
+      }}}%
+      % Insert h-offset to manually center the title content.
+      \hspace{\dimexpr\titleLRExtraWd + .5\titleSingleLineMaxWd - .5\titleMultiLineMaxWd\relax}%
+      \@titleBox{\centering #1}%
+    \else
+      % case 3: #1 is fit for one line
+      \rlap{\titleUnderline}%
+      \hspace{\titleLRExtraWd}%
+      \@titleBox{\centering #1}%
+    \fi
+  \fi
+}
+% common operations on every title content
+\newcommand{\@titleBox}[1]{%
+  \parbox[t]{\@tempTitleMaxWd}{#1}}
+%\makeatother
+
+
+\endinput
